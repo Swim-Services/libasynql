@@ -88,8 +88,8 @@ class SqlThreadPool implements SqlThread{
 		}
 	}
 
-	public function addQuery(int $queryId, array $modes, array $queries, array $params) : void{
-		$this->bufferSend->scheduleQuery($queryId, $modes, $queries, $params);
+	public function addQuery(int $queryId, array $modes, array $queries, array $params, bool $priority = false) : void{
+		$this->bufferSend->scheduleQuery($queryId, $modes, $queries, $params, $priority);
 
 		// check if we need to increase worker size
 		foreach($this->workers as $worker){

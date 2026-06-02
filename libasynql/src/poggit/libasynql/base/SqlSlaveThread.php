@@ -114,8 +114,8 @@ abstract class SqlSlaveThread extends Thread implements SqlThread{
 		parent::quit();
 	}
 
-	public function addQuery(int $queryId, array $modes, array $queries, array $params) : void{
-		$this->bufferSend->scheduleQuery($queryId, $modes, $queries, $params);
+	public function addQuery(int $queryId, array $modes, array $queries, array $params, bool $priority = false) : void{
+		$this->bufferSend->scheduleQuery($queryId, $modes, $queries, $params, $priority);
 	}
 
 	public function readResults(array &$callbacks, ?int $expectedResults) : void{

@@ -229,6 +229,14 @@ class DataConnectorImpl implements DataConnector{
 	 * @param int[] $modes
 	 */
 	public function executeImplRaw(array $queries, array $args, array $modes, callable $handler, ?callable $onError) : void{
+		$this->executeImplRawInternal($queries, $args, $modes, $handler, $onError, false);
+	}
+
+	public function executeImplRawPriority(array $queries, array $args, array $modes, callable $handler, ?callable $onError) : void{
+		$this->executeImplRawInternal($queries, $args, $modes, $handler, $onError, true);
+	}
+
+	private function executeImplRawInternal(array $queries, array $args, array $modes, callable $handler, ?callable $onError, bool $priority) : void{
 		$queryId = $this->queryId++;
 		$trace = libasynql::isPackaged() ? null : new Exception("(This is the original stack trace for the following error)");
 		$this->handlers[$queryId] = function($results) use ($handler, $onError, $trace){
@@ -282,11 +290,12 @@ class DataConnectorImpl implements DataConnector{
 		if($this->logger !== null){
 			foreach($queries as $index => $query) {
 				$mode = $modes[$index];
-				$this->logger->debug("Queuing mode-$mode query: " . str_replace(["\r\n", "\n"], "\\n ", $query) . " | Args: " . json_encode($args[$index]));
+				$prefix = $priority ? "priority " : "";
+				$this->logger->debug("Queuing {$prefix}mode-$mode query: " . str_replace(["\r\n", "\n"], "\\n ", $query) . " | Args: " . json_encode($args[$index]));
 			}
 		}
 
-		$this->thread->addQuery($queryId, $modes, $queries, $args);
+		$this->thread->addQuery($queryId, $modes, $queries, $args, $priority);
 	}
 
 	private function reportError(?callable $default, SqlError $error, ?Exception $trace) : void{

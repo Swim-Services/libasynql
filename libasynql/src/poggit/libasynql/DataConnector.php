@@ -195,17 +195,26 @@ interface DataConnector{
 	public function executeImplRaw(array $queries, array $args, array $modes, callable $handler, ?callable $onError) : void;
 
 	/**
+	 * Executes a raw query bundle ahead of normal queued work.
+	 *
+	 * @param string[] $queries
+	 * @param mixed[][] $args
+	 * @param int[] $modes
+	 */
+	public function executeImplRawPriority(array $queries, array $args, array $modes, callable $handler, ?callable $onError) : void;
+
+	/**
 	 * Executes a select query that returns an SQL result set. This does not strictly need to be SELECT queries -- reflection queries like MySQL's <code>SHOW TABLES</code> query are also allowed.
 	 *
 	 * This function is the await-generator variant. Non await-generator users should not use this function.
 	 *
-	 * The generator returns the array of rows.
+	 * The generator returns the number of affected rows.
 	 *
 	 * If {@link SqlColumnInfo} is needed, use `asyncSelectWithInfo` instead.
 	 *
 	 * @param string  $queryName the {@link GenericPreparedStatement} query name
 	 * @param mixed[] $args      the variables as defined in the {@link GenericPreparedStatement}
-	 * @return Generator<mixed, Await::RESOLVE|Await::REJECT, mixed, array[]>
+	 * @return Generator<mixed, Await::RESOLVE|Await::REJECT, mixed, array[] $rows>
 	 */
 	public function asyncSelect(string $queryName, array $args = []) : Generator;
 

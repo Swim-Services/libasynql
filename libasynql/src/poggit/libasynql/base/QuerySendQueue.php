@@ -30,26 +30,37 @@ class QuerySendQueue extends ThreadSafe{
 	/** @var bool */
 	private $invalidated = false;
 	/** @var ThreadSafeArray */
+	private $priorityQueries;
+	/** @var ThreadSafeArray */
 	private $queries;
 
 	public function __construct(){
+		$this->priorityQueries = new ThreadSafeArray();
 		$this->queries = new ThreadSafeArray();
 	}
 
-	public function scheduleQuery(int $queryId, array $modes, array $queries, array $params) : void{
+	public function scheduleQuery(int $queryId, array $modes, array $queries, array $params, bool $priority = false) : void{
 		if($this->invalidated){
 			throw new QueueShutdownException("You cannot schedule a query on an invalidated queue.");
 		}
-		$this->synchronized(function() use ($queryId, $modes, $queries, $params) : void{
-			$this->queries[] = serialize([$queryId, $modes, $queries, $params]);
+		$this->synchronized(function() use ($queryId, $modes, $queries, $params, $priority) : void{
+			$row = serialize([$queryId, $modes, $queries, $params]);
+			if($priority){
+				$this->priorityQueries[] = $row;
+			}else{
+				$this->queries[] = $row;
+			}
 			$this->notifyOne();
 		});
 	}
 
 	public function fetchQuery() : ?string {
 		return $this->synchronized(function(): ?string {
-			while($this->queries->count() === 0 && !$this->isInvalidated()){
+			while($this->priorityQueries->count() === 0 && $this->queries->count() === 0 && !$this->isInvalidated()){
 				$this->wait();
+			}
+			if($this->priorityQueries->count() > 0){
+				return $this->priorityQueries->shift();
 			}
 			return $this->queries->shift();
 		});
@@ -70,6 +81,14 @@ class QuerySendQueue extends ThreadSafe{
 	}
 
 	public function count() : int{
+		return $this->priorityQueries->count() + $this->queries->count();
+	}
+
+	public function getPriorityCount() : int{
+		return $this->priorityQueries->count();
+	}
+
+	public function getNormalCount() : int{
 		return $this->queries->count();
 	}
 }
