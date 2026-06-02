@@ -40,10 +40,10 @@ class QuerySendQueue extends ThreadSafe{
 	}
 
 	public function scheduleQuery(int $queryId, array $modes, array $queries, array $params, bool $priority = false) : void{
-		if($this->invalidated){
-			throw new QueueShutdownException("You cannot schedule a query on an invalidated queue.");
-		}
 		$this->synchronized(function() use ($queryId, $modes, $queries, $params, $priority) : void{
+			if($this->invalidated){
+				throw new QueueShutdownException("You cannot schedule a query on an invalidated queue.");
+			}
 			$row = serialize([$queryId, $modes, $queries, $params]);
 			if($priority){
 				$this->priorityQueries[] = $row;
@@ -62,7 +62,10 @@ class QuerySendQueue extends ThreadSafe{
 			if($this->priorityQueries->count() > 0){
 				return $this->priorityQueries->shift();
 			}
-			return $this->queries->shift();
+			if($this->queries->count() > 0){
+				return $this->queries->shift();
+			}
+			return null;
 		});
 	}
 
